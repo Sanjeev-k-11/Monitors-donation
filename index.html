@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Charity Impact Monitor</title>
+    <style>
+        :root {
+            --primary-color: #4f46e5; /* Indigo 600 */
+            --primary-hover: #4338ca; /* Indigo 700 */
+            --secondary-color: #6366f1; /* Indigo 500 */
+            --light-bg: #f9fafb;    /* Gray 50 */
+            --medium-bg: #f3f4f6;   /* Gray 100 */
+            --dark-bg: #e5e7eb;     /* Gray 200 */
+            --text-dark: #1f2937;   /* Gray 800 */
+            --text-light: #6b7280;  /* Gray 500 */
+            --white: #ffffff;
+            --red: #ef4444;         /* Red 500 */
+            --red-hover: #dc2626;   /* Red 600 */
+            --border-color: #d1d5db;/* Gray 300 */
+            --border-radius-sm: 4px;
+            --border-radius-md: 8px;
+            --border-radius-lg: 12px;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--medium-bg);
+            color: var(--text-dark);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            max-width: 900px;
+            margin: 1rem auto;
+            background-color: var(--white);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            flex-grow: 1;
+        }
+        .app-header {
+            text-align: center;
+            padding: 1rem 1.5rem;
+            background: linear-gradient(90deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: var(--white);
+            font-size: 1.5rem;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+        .main-content {
+            display: flex;
+            flex-grow: 1;
+            overflow: hidden;
+            flex-direction: column;
+        }
+         @media (min-width: 768px) {
+            .main-content { flex-direction: row; }
+            .chat-area { flex: 3; }
+            .sidebar {
+                flex: 2;
+                border-left: 1px solid var(--border-color);
+                border-top: none;
+                max-height: none;
+                overflow: visible;
+                flex-shrink: 1;
+            }
+        }
+
+        .chat-area {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+         .quick-prompts-section {
+             padding: 0.75rem 1rem;
+             background-color: var(--light-bg);
+             border-bottom: 1px solid var(--border-color);
+             flex-shrink: 0;
+         }
+        .quick-prompts-title {
+            font-size: 0.8rem; color: var(--text-light); margin-bottom: 0.5rem;
+            font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .quick-prompts { display: flex; flex-wrap: wrap; gap: 8px; }
+        .quick-prompt-btn {
+            background-color: var(--secondary-color); color: var(--white);
+            padding: 6px 12px; border: none; border-radius: var(--border-radius-md);
+            cursor: pointer; transition: background-color 0.2s ease, transform 0.1s ease;
+            font-size: 0.85rem; font-weight: 500; display: inline-flex;
+            align-items: center; gap: 5px; box-shadow: var(--shadow-sm);
+        }
+        .quick-prompt-btn:hover { background-color: var(--primary-hover); transform: translateY(-1px); }
+        .quick-prompt-btn:active { transform: translateY(0); }
+
+        .chat-history {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            background-color: var(--white);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .chat-history::-webkit-scrollbar { width: 8px; }
+        .chat-history::-webkit-scrollbar-track { background: var(--medium-bg); border-radius: 4px; }
+        .chat-history::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        .chat-history::-webkit-scrollbar-thumb:hover { background: var(--text-light); }
+
+        .message { display: flex; align-items: flex-end; gap: 10px; max-width: 85%; }
+        .avatar {
+            width: 36px; height: 36px; border-radius: 50%; object-fit: cover;
+            flex-shrink: 0; box-shadow: var(--shadow-sm);
+            background-color: var(--dark-bg);
+        }
+        .message-content {
+            padding: 10px 15px; border-radius: var(--border-radius-lg);
+            font-size: 0.95rem; line-height: 1.5; white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .ai-message { align-self: flex-start; }
+        .ai-message .message-content {
+            background-color: var(--dark-bg); color: var(--text-dark);
+            border-bottom-left-radius: var(--border-radius-sm);
+        }
+        .user-message { align-self: flex-end; flex-direction: row-reverse; }
+        .user-message .message-content {
+            background-color: var(--primary-color); color: var(--white);
+            border-bottom-right-radius: var(--border-radius-sm);
+        }
+         .user-message .message-content img {
+             display: block;
+             max-width: 100%;
+             max-height: 200px;
+             margin-top: 10px;
+             border-radius: var(--border-radius-sm);
+             cursor: pointer;
+         }
+         .typing-indicator { align-items: center; }
+         .typing-indicator .message-content { background: none; padding: 5px 0; }
+         .typing-indicator span {
+             display: inline-block; width: 8px; height: 8px;
+             margin: 0 2px;
+             background-color: var(--text-light); border-radius: 50%;
+             animation: bounce 1.4s infinite ease-in-out both;
+         }
+         .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+         .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+         @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1.0); } }
+
+        .app-footer {
+            padding: 0.75rem 1rem;
+            background-color: var(--medium-bg);
+            border-top: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+        .input-area {
+            display: flex; align-items: center; gap: 10px;
+            background-color: var(--white); padding: 8px;
+            border-radius: var(--border-radius-md); border: 1px solid var(--border-color);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .input-area:focus-within {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+         }
+        #prompt-input {
+            flex: 1; border: none; outline: none; font-size: 1rem;
+            color: var(--text-dark); background: transparent; padding: 5px;
+        }
+        #prompt-input::placeholder { color: var(--text-light); font-style: italic; }
+        .icon-button {
+            background: none; border: none; cursor: pointer; padding: 5px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 50%; transition: background-color 0.2s ease;
+            color: var(--text-light);
+        }
+        .icon-button:hover { background-color: var(--dark-bg); color: var(--primary-color); }
+        .icon-button img, .icon-button svg { width: 24px; height: 24px; }
+        #submit-button { background-color: var(--primary-color); color: var(--white); }
+        #submit-button:hover { background-color: var(--primary-hover); color: var(--white); }
+        #file-input { display: none; }
+
+        .sidebar {
+            display: flex; flex-direction: column; background-color: var(--light-bg);
+            border-top: 1px solid var(--border-color);
+            max-height: 40vh;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .summary-section {
+            padding: 1rem 1.5rem;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+        .summary-title {
+            font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem;
+            color: var(--primary-color); border-bottom: 2px solid var(--secondary-color);
+            padding-bottom: 0.25rem; display: inline-block;
+        }
+        .summary-stats {
+            background-color: var(--white); padding: 0.75rem 1rem;
+            border-radius: var(--border-radius-md); margin-bottom: 1rem;
+            border: 1px solid var(--border-color); font-size: 0.9rem; line-height: 1.6;
+            box-shadow: var(--shadow-sm);
+        }
+        .summary-stats strong { color: var(--text-dark); font-weight: 600; }
+        .summary-stats span { color: var(--primary-color); font-weight: bold; }
+        #clear-history-btn {
+            background-color: transparent; color: var(--red); padding: 6px 10px;
+            border: 1px solid var(--red); border-radius: var(--border-radius-md);
+            cursor: pointer; transition: background-color 0.2s ease, color 0.2s ease;
+            font-size: 0.8rem; font-weight: 500; display: inline-flex;
+            align-items: center; gap: 5px; margin-bottom: 1rem;
+        }
+        #clear-history-btn:hover { background-color: var(--red); color: var(--white); }
+        #impact-list { list-style-type: none; padding: 0; margin: 0; max-height: 250px; overflow-y: auto; }
+        #impact-list li {
+            background-color: var(--white); padding: 10px 12px;
+            border-bottom: 1px solid var(--medium-bg); font-size: 0.9rem;
+            color: var(--text-light); transition: background-color 0.1s ease;
+            border-radius: var(--border-radius-sm); margin-bottom: 5px;
+            border: 1px solid var(--border-color);
+            word-break: break-word;
+         }
+        #impact-list li:last-child { border-bottom: none; }
+        #impact-list li:hover { background-color: var(--medium-bg); }
+        #impact-list::-webkit-scrollbar { width: 6px; }
+        #impact-list::-webkit-scrollbar-track { background: var(--light-bg); border-radius: 3px; }
+        #impact-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+        #impact-list::-webkit-scrollbar-thumb:hover { background: var(--text-light); }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <header class="app-header">
+             AI Charity Impact Monitor
+        </header>
+
+        <div class="main-content">
+
+            <div class="chat-area">
+                 <section class="quick-prompts-section" aria-labelledby="quick-prompts-heading">
+                     <h2 id="quick-prompts-heading" class="quick-prompts-title">Quick Start Suggestions</h2>
+                     <div class="quick-prompts">
+                         <button class="quick-prompt-btn" data-msg="Analyze the impact of a $100 donation to UNICEF for education.">🎓 Education</button>
+                         <button class="quick-prompt-btn" data-msg="Compare the effectiveness of GiveWell and DirectRelief in disaster response.">⚖️ Compare</button>
+                         <button class="quick-prompt-btn" data-msg="Check if 'Save the Kittens Foundation' is legitimate and transparent.">🔍 Verify</button>
+                         <button class="quick-prompt-btn" data-msg="Estimate how many people benefit from $500 given to Charity Water.">🚰 Water</button>
+                     </div>
+                 </section>
+
+                <div class="chat-history" id="chat-history">
+                </div>
+            </div>
+
+             <aside class="sidebar">
+                 <section class="summary-section" aria-labelledby="summary-heading">
+                     <h2 id="summary-heading" class="summary-title">📊 Donation Impact Summary</h2>
+
+                     <div class="summary-stats">
+                         <strong>Tracked Mentions:</strong> <span id="donation-count">0</span><br>
+                         <strong>Total Amount Mentioned:</strong> $<span id="donation-total">0.00</span>
+                     </div>
+
+                     <button id="clear-history-btn" aria-label="Clear donation history and chat">
+                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                            <path fill-rule="evenodd" d="M5 3.25a.75.75 0 0 1 .75-.75h8.5a.75.75 0 0 1 .75.75V4h-10v-.75Zm-.75 1.5a.75.75 0 0 0-.75.75v10.5c0 .414.336.75.75.75h10.5a.75.75 0 0 0 .75-.75V5.5a.75.75 0 0 0-.75-.75h-1.625v-.75H6.625v.75H4.25Zm1.5 1.5a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
+                         </svg>
+                         Clear History & Summary
+                     </button>
+
+                     <h3 class="summary-title" style="font-size: 1rem; margin-bottom: 0.5rem; border: none;">Donation Mentions List</h3>
+                     <ul id="impact-list">
+                     </ul>
+                 </section>
+            </aside>
+        </div>
+
+        <footer class="app-footer">
+            <form class="input-area" id="message-form" action="javascript:void(0);">
+                <label for="file-input" class="icon-button" title="Attach image" aria-label="Attach image">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                      <path fill-rule="evenodd" d="M1.5 6a2.25 2.25 0 0 1 2.25-2.25h16.5A2.25 2.25 0 0 1 22.5 6v12a2.25 2.25 0 0 1-2.25 2.25H3.75A2.25 2.25 0 0 1 1.5 18V6zM3 16.06l4.47-4.47a.75.75 0 0 1 1.06 0l3.97 3.97L17.03 9.53a.75.75 0 0 1 1.06 0l2.25 2.25V6H3v10.06z" clip-rule="evenodd" />
+                      <path d="M8.25 10.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0z" />
+                    </svg>
+                </label>
+                <input type="file" id="file-input" accept="image/*">
+
+                <input type="text" id="prompt-input" placeholder="Ask about impact, charities, donations..." aria-label="Your message" required>
+
+                <button type="submit" class="icon-button" id="submit-button" title="Send message" aria-label="Send message">
+                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                       <path d="M3.478 2.405a.75.75 0 0 0-.926.94l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.405z" />
+                     </svg>
+                </button>
+            </form>
+        </footer>
+    </div>
+
+    <script>
+        const promptInput = document.getElementById("prompt-input");
+        const submitBtn = document.getElementById("submit-button");
+        const messageForm = document.getElementById("message-form");
+        const chatHistory = document.getElementById("chat-history");
+        const impactList = document.getElementById("impact-list");
+        const donationCount = document.getElementById("donation-count");
+        const donationTotal = document.getElementById("donation-total");
+        const clearHistoryBtn = document.getElementById("clear-history-btn");
+        const quickPromptBtns = document.querySelectorAll(".quick-prompt-btn");
+        const imageInputLabel = document.querySelector("label[for='file-input']");
+        const imageInput = document.getElementById("file-input");
+
+        const USER_AVATAR_SRC = "user.png";
+        const AI_AVATAR_SRC = "ai.png";
+        const USER_FALLBACK_SVG = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%236b7280"><path d="M12 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 12c-3.6 0-10 1.8-10 5.4V22h20v-2.6c0-3.6-6.4-5.4-10-5.4z"/></svg>';
+        const AI_FALLBACK_SVG = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%234f46e5"><path fill-rule="evenodd" d="M4.75 2.75a.75.75 0 0 0-.75.75v11.5c0 .414.336.75.75.75h14.5a.75.75 0 0 0 .75-.75V8.75a.75.75 0 0 0-.75-.75h-8.25a.75.75 0 0 1-.75-.75V2.75H4.75ZM9 3.5h6.5V7H9V3.5Zm-4.5 6a.75.75 0 0 0 0 1.5h8.5a.75.75 0 0 0 0-1.5H4.5ZM4 13.25a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 0 1.5H4.75a.75.75 0 0 1-.75-.75Zm12.5 2a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Z" clip-rule="evenodd" /><path d="M17.75 2.75a.75.75 0 0 0-.75.75v4.5c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75V6.31l-1.72 1.72a.75.75 0 1 0 1.06 1.06l2.25-2.25a.75.75 0 0 0 0-1.06l-2.25-2.25a.75.75 0 0 0-1.06 1.06L21.19 5H17.75V3.5a.75.75 0 0 0-.75-.75Z" /></svg>';
+
+        const Api_Key = "AIzaSyAnG7I23cctUj2CD1xshfTsd7AuXVf8C4Y"; // <-- REPLACE THIS
+        const Api_Url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${Api_Key}`;
+
+        let conversationHistory = [];
+        let donationHistoryArray = [];
+        let totalDonations = 0;
+        let currentImageFile = null;
+
+        function initializeChat() {
+            const initialInstructions = "You are a helpful AI assistant designed specifically as a Charity Impact Tracker. Your primary functions are: 1. Analyze the potential impact of donations based on user input or general knowledge about common charity outcomes (e.g., '$50 to a food bank might provide X meals'). Provide estimations and context. 2. Compare the effectiveness, transparency, and focus areas of different charities based on publicly available information patterns and typical metrics found on evaluator sites (mention typical overhead ranges, common impact metrics). 3. Help users understand how to verify the legitimacy of charities by mentioning reputable sources like Charity Navigator, GuideStar/Candid, Better Business Bureau Wise Giving Alliance, and the IRS database (Tax Exempt Organization Search). Explain the *types* of information these sources provide (financials, governance, impact). State clearly that you *cannot* access live, real-time data from these sources yourself, but can explain how to use them. 4. Answer general questions about charitable giving, donation methods, and impact measurement concepts. Be concise, informative, and helpful. Ask clarifying questions if a user's request is ambiguous. Start the conversation by greeting the user and briefly explaining your main capabilities.";
+            const initialAiGreeting = "Hello! 👋 I'm your AI Charity Impact Tracker. I can help analyze donation impact, compare charities based on common metrics, explain how to verify legitimacy, and answer questions about effective giving. How can I assist you today?";
+
+            conversationHistory = [
+                { role: "user", parts: [{text: initialInstructions }] },
+                { role: "model", parts: [{text: initialAiGreeting }] }
+            ];
+
+            chatHistory.innerHTML = '';
+            addMessageToChatUI(initialAiGreeting, false);
+
+            donationHistoryArray = [];
+            totalDonations = 0;
+            updateSummaryDisplay();
+            clearImpactListUI();
+
+            scrollToBottom();
+        }
+
+        function addMessageToChatUI(message, isUser = false, base64ImageData = null, mimeType = null) {
+            const typingIndicator = chatHistory.querySelector(".typing-indicator");
+            if (!isUser && typingIndicator) {
+                chatHistory.removeChild(typingIndicator);
+            }
+
+            const messageWrapper = document.createElement("div");
+            messageWrapper.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
+
+            const avatar = document.createElement("img");
+            avatar.src = isUser ? USER_AVATAR_SRC : AI_AVATAR_SRC;
+            avatar.onerror = () => {
+                avatar.onerror = null;
+                avatar.src = isUser ? USER_FALLBACK_SVG : AI_FALLBACK_SVG;
+            };
+            avatar.alt = isUser ? "User Avatar" : "AI Avatar";
+            avatar.className = "avatar";
+
+            const messageContent = document.createElement("div");
+            messageContent.className = "message-content";
+            messageContent.textContent = message;
+
+            if (isUser && base64ImageData && mimeType) {
+                const imgElement = document.createElement('img');
+                imgElement.src = `data:${mimeType};base64,${base64ImageData}`;
+                imgElement.alt = "Uploaded image";
+                messageContent.appendChild(imgElement);
+            }
+
+            if (isUser) {
+                messageWrapper.appendChild(messageContent);
+                messageWrapper.appendChild(avatar);
+            } else {
+                messageWrapper.appendChild(avatar);
+                messageWrapper.appendChild(messageContent);
+            }
+
+            chatHistory.appendChild(messageWrapper);
+            scrollToBottom();
+            return messageContent;
+        }
+
+        function showTypingIndicatorUI() {
+            if (chatHistory.querySelector(".typing-indicator")) return;
+
+            const typingDiv = document.createElement("div");
+            typingDiv.className = "message ai-message typing-indicator";
+            typingDiv.innerHTML = `
+                <img src="${AI_AVATAR_SRC}" alt="AI Avatar" class="avatar" onerror="this.onerror=null; this.src='${AI_FALLBACK_SVG}';">
+                <div class="message-content">
+                   <span></span><span></span><span></span>
+                 </div>`;
+            chatHistory.appendChild(typingDiv);
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        function updateSummaryDisplay() {
+            donationCount.innerText = donationHistoryArray.length;
+            donationTotal.innerText = totalDonations.toFixed(2);
+        }
+
+        function addImpactItemToUI(description, amount) {
+            const li = document.createElement("li");
+            const safeDescription = description.length > 60 ? description.substring(0, 57) + '...' : description;
+            li.textContent = `${safeDescription} - $${amount.toFixed(2)}`;
+            li.title = description;
+            impactList.appendChild(li);
+            impactList.scrollTop = impactList.scrollHeight;
+        }
+
+        function clearImpactListUI() {
+            impactList.innerHTML = "";
+        }
+
+        async function generateResponse(currentUserMessage, imageFile = null) {
+            const userParts = [{ text: currentUserMessage }];
+            if (imageFile?.data && imageFile?.mime_type) {
+                userParts.push({
+                    inline_data: {
+                        mime_type: imageFile.mime_type,
+                        data: imageFile.data
+                    }
+                });
+            }
+
+            if (!Array.isArray(conversationHistory)) {
+                 console.warn("Conversation history was invalid. Re-initializing.");
+                 initializeChat();
+                 conversationHistory.push({ role: "user", parts: userParts });
+            } else {
+                 conversationHistory.push({ role: "user", parts: userParts });
+            }
+
+            const requestBody = {
+                "contents": conversationHistory,
+                "generationConfig": {
+                    "temperature": 0.7,
+                    "maxOutputTokens": 1500
+                 },
+                "safetySettings": [
+                    { "category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE" },
+                    { "category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_MEDIUM_AND_ABOVE" },
+                    { "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_MEDIUM_AND_ABOVE" },
+                    { "category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE" }
+                 ]
+            };
+
+            const requestOptions = {
+                method: "POST",
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            };
+
+            let apiResponseText = "Sorry, I encountered an issue processing your request. Please try again.";
+
+            try {
+                const response = await fetch(Api_Url, requestOptions);
+
+                if (!response.ok) {
+                    let errorDetail = `HTTP error! Status: ${response.status}`;
+                    try {
+                        const errorData = await response.json();
+                        console.error("API Error Response:", errorData);
+                        errorDetail = errorData.error?.message || JSON.stringify(errorData);
+                    } catch (e) {
+                        errorDetail += ` - ${await response.text()}`;
+                        console.error("Could not parse API error response body:", e);
+                     }
+                    throw new Error(`API Error: ${errorDetail}`);
+                }
+
+                const data = await response.json();
+
+                if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+                    apiResponseText = data.candidates[0].content.parts.map(part => part.text || '').join('\n').trim();
+                    conversationHistory.push({ role: "model", parts: [{ text: apiResponseText }] });
+
+                } else if (data.promptFeedback?.blockReason) {
+                    apiResponseText = `⚠️ Your request was blocked due to safety settings (${data.promptFeedback.blockReason}). Please rephrase your message.`;
+                    console.warn("Request blocked by safety filter:", data.promptFeedback);
+                 } else if (data.candidates && data.candidates[0]?.finishReason && data.candidates[0].finishReason !== 'STOP') {
+                    apiResponseText = `⚠️ The response could not be completed (${data.candidates[0].finishReason}).`;
+                    console.warn("Response incomplete:", data.candidates[0].finishReason);
+                    conversationHistory.push({ role: "model", parts: [{ text: apiResponseText }] });
+                }
+                 else {
+                    apiResponseText = "Received an empty or unexpected response structure from the AI.";
+                    console.warn("Unexpected API response structure:", data);
+                     conversationHistory.push({ role: "model", parts: [{ text: apiResponseText }] });
+                 }
+
+                 const lowerUserMsg = currentUserMessage.toLowerCase();
+                 if (apiResponseText && !apiResponseText.startsWith("⚠️") && (lowerUserMsg.includes("donation") || lowerUserMsg.includes("donate") || currentUserMessage.includes("$"))) {
+                     const amount = extractAmount(currentUserMessage);
+                     if (amount > 0) {
+                         trackDonationMention(currentUserMessage, amount);
+                     }
+                 }
+
+            } catch (error) {
+                console.error("Interaction Error:", error);
+                apiResponseText = `⚠️ Interaction failed: ${error.message}. Check console.`;
+                const lastHistory = conversationHistory[conversationHistory.length - 1];
+                 if (!lastHistory || lastHistory.role !== 'model' || !lastHistory.parts[0].text.startsWith("⚠️")) {
+                    conversationHistory.push({ role: "model", parts: [{ text: apiResponseText }] });
+                 }
+            } finally {
+                 const finalIndicator = chatHistory.querySelector(".typing-indicator");
+                 if (finalIndicator) { chatHistory.removeChild(finalIndicator); }
+                 addMessageToChatUI(apiResponseText, false);
+                 currentImageFile = null;
+                 imageInput.value = null;
+            }
+        }
+
+        function handleSendMessage(messageOverride = null) {
+            const userMessage = (messageOverride || promptInput.value).trim();
+            const selectedFile = imageInput.files[0];
+
+            if (!userMessage && !selectedFile) return;
+
+            promptInput.value = "";
+
+            if (selectedFile) {
+                 if (!selectedFile.type.startsWith("image/")) {
+                     addMessageToChatUI("❌ Error: Please select a valid image file (PNG, JPG, GIF, WEBP).", false);
+                     imageInput.value = null;
+                     currentImageFile = null;
+                     return;
+                 }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const base64string = e.target.result.split(",")[1];
+                        if (!base64string) throw new Error("Could not extract base64 data from file.");
+
+                        currentImageFile = { mime_type: selectedFile.type, data: base64string };
+
+                        addMessageToChatUI(userMessage, true, currentImageFile.data, currentImageFile.mime_type);
+                        showTypingIndicatorUI();
+                        generateResponse(userMessage, currentImageFile);
+
+                    } catch (readError) {
+                         console.error("Error processing file:", readError);
+                         addMessageToChatUI(`❌ Error processing image: ${readError.message}`, false);
+                         imageInput.value = null;
+                         currentImageFile = null;
+                    }
+                };
+                reader.onerror = (err) => {
+                     console.error("File reading error:", err);
+                     addMessageToChatUI("❌ Error reading the selected file.", false);
+                     imageInput.value = null;
+                     currentImageFile = null;
+                };
+                reader.readAsDataURL(selectedFile);
+
+            } else {
+                addMessageToChatUI(userMessage, true);
+                showTypingIndicatorUI();
+                generateResponse(userMessage, null);
+            }
+        }
+
+        function extractAmount(text) {
+            const match = text.match(/(?:USD|\$)\s?(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)/i);
+            return match && match[1] ? parseFloat(match[1].replace(/,/g, '')) : 0;
+        }
+
+        function trackDonationMention(description, amount) {
+             if (amount <= 0) return;
+
+            donationHistoryArray.push({ description, amount });
+            totalDonations += amount;
+
+            addImpactItemToUI(description, amount);
+            updateSummaryDisplay();
+        }
+
+        function clearAllHistory() {
+            conversationHistory = [];
+            donationHistoryArray = [];
+            totalDonations = 0;
+            currentImageFile = null;
+            imageInput.value = null;
+
+            chatHistory.innerHTML = "";
+            clearImpactListUI();
+            updateSummaryDisplay();
+
+            initializeChat();
+        }
+
+        messageForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            handleSendMessage();
+        });
+
+        quickPromptBtns.forEach(btn => {
+            btn.addEventListener("click", () => {
+                handleSendMessage(btn.dataset.msg);
+            });
+        });
+
+        clearHistoryBtn.addEventListener("click", () => {
+             if (confirm("Are you sure you want to clear the chat history and donation summary? This action cannot be undone.")) {
+                 clearAllHistory();
+             }
+        });
+
+         imageInput.addEventListener("change", (e) => {
+             if (e.target.files && e.target.files[0]) {
+                 // Optional: Add feedback for image selection
+             } else {
+                // Optional: Add feedback for image deselection
+             }
+         });
+
+        initializeChat();
+
+    </script>
+
+</body>
+</html>
